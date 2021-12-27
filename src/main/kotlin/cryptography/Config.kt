@@ -1,8 +1,11 @@
 package cryptography
 
+import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isDirectory
+
 
 class Config {
     companion object {
@@ -22,36 +25,47 @@ class Config {
     }
 
     fun readConfig(): Boolean {
-        val projectPath = Paths.get("").toAbsolutePath()
-        val configFilePath = projectPath.resolve("src/main/resources/config.txt")
-        if (!Files.exists(configFilePath)) {
-            println("Setup needs to be performed!")
-            return false
+        val jarParentPath = File(this::class.java.protectionDomain.codeSource.location.toURI()).toPath().parent
+        val configFilePath = jarParentPath.resolve("config.txt")
+        if (Files.exists(configFilePath)) {
+            try {
+                var contents = Files.readAllBytes(configFilePath).decodeToString()
+                val imagesDirectoryPath = contents.substring(
+                    contents.indexOf(ABSOLUTE_IMAGES_PATH_CONFIG_PARAM) + ABSOLUTE_IMAGES_PATH_CONFIG_PARAM.length + 1,
+                    contents.indexOf(SEPARATOR),
+                )
+                contents = contents.substring(ABSOLUTE_IMAGES_PATH_CONFIG_PARAM.length + imagesDirectoryPath.length + 3)
+                val inputDirectoryName = contents.substring(
+                    contents.indexOf(INPUT_IMAGES_FOLDER_NAME_PARAM) + INPUT_IMAGES_FOLDER_NAME_PARAM.length + 1,
+                    contents.indexOf(SEPARATOR),
+                )
+                contents = contents.substring(INPUT_IMAGES_FOLDER_NAME_PARAM.length + inputDirectoryName.length + 3)
+                val outputDirectoryName = contents.substring(
+                    contents.indexOf(OUTPUT_IMAGES_FOLDER_NAME_PARAM) + OUTPUT_IMAGES_FOLDER_NAME_PARAM.length + 1,
+                    contents.indexOf(SEPARATOR),
+                )
+                val inputImagesDirPath = Paths.get("$imagesDirectoryPath\\$inputDirectoryName")
+                val outputImagesDirPath = Paths.get("$imagesDirectoryPath\\$outputDirectoryName")
+                return if (inputImagesDirPath.isAbsolute and inputImagesDirPath.isDirectory()
+                    and outputImagesDirPath.isAbsolute and outputImagesDirPath.isDirectory()) {
+                    imagesAbsolutePath = imagesDirectoryPath
+                    inputImagesFolderName = inputDirectoryName
+                    outputImagesFolderName = outputDirectoryName
+                    true
+                } else {
+                    false
+                }
+            } catch (e: Exception) {
+                println("ERROR: Config file is corrupted!")
+            }
         }
-        var contents = Files.readAllBytes(configFilePath).decodeToString()
-        imagesAbsolutePath = contents.substring(
-            contents.indexOf(ABSOLUTE_IMAGES_PATH_CONFIG_PARAM) + ABSOLUTE_IMAGES_PATH_CONFIG_PARAM.length + 1,
-            contents.indexOf(SEPARATOR),
-        )
-        contents = contents.substring(ABSOLUTE_IMAGES_PATH_CONFIG_PARAM.length + imagesAbsolutePath.length + 3)
-        inputImagesFolderName = contents.substring(
-            contents.indexOf(INPUT_IMAGES_FOLDER_NAME_PARAM) + INPUT_IMAGES_FOLDER_NAME_PARAM.length + 1,
-            contents.indexOf(SEPARATOR),
-        )
-        contents = contents.substring(INPUT_IMAGES_FOLDER_NAME_PARAM.length + inputImagesFolderName.length + 3)
-        outputImagesFolderName = contents.substring(
-            contents.indexOf(OUTPUT_IMAGES_FOLDER_NAME_PARAM) + OUTPUT_IMAGES_FOLDER_NAME_PARAM.length + 1,
-            contents.indexOf(SEPARATOR),
-        )
-        val inputImagesDirPath = Paths.get("$imagesAbsolutePath\\$inputImagesFolderName")
-        val outputImagesDirPath = Paths.get("$imagesAbsolutePath\\$outputImagesFolderName")
-        return (inputImagesDirPath.isAbsolute and inputImagesDirPath.isDirectory()
-                and outputImagesDirPath.isAbsolute and outputImagesDirPath.isDirectory())
+        println("Setup needs to be performed!")
+        return false
     }
 
     fun setup(recommendedSettings: Boolean): Boolean {
-        val projectPath = Paths.get("").toAbsolutePath()
-        val configFilePath = projectPath.resolve("src/main/resources/config.txt")
+        val jarParentPath = File(this::class.java.protectionDomain.codeSource.location.toURI()).toPath().parent
+        val configFilePath = jarParentPath.resolve("config.txt")
         println("Images folder: ")
         val imagesFolderPath = Util.readInput()
         val inputImagesFolderName: String
@@ -73,17 +87,27 @@ class Config {
                 if (!Files.exists(rootPath)) {
                     Files.createDirectory(rootPath)
                 }
+            } catch (e: IOException) {
+                Files.deleteIfExists(rootPath)
+                println("ERROR: Can't create specified images root directory!")
+                return false
+            }
+            try {
                 if (!Files.exists(inputImagesPath)) {
                     Files.createDirectory(inputImagesPath)
                 }
+            } catch (e: IOException) {
+                Files.deleteIfExists(inputImagesPath)
+                println("ERROR: Can't create specified input directory!")
+                return false
+            }
+            try {
                 if (!Files.exists(outputImagesPath)) {
                     Files.createDirectory(outputImagesPath)
                 }
-            } catch (e: Exception) {
-                Files.deleteIfExists(rootPath)
-                Files.deleteIfExists(inputImagesPath)
+            } catch (e: IOException) {
                 Files.deleteIfExists(outputImagesPath)
-                println("ERROR: Can't create specified input and output directories!")
+                println("ERROR: Can't create specified output directory!")
                 return false
             }
         } catch (e: Exception) {
@@ -101,8 +125,8 @@ class Config {
             Files.createFile(configFilePath)
             Files.write(configFilePath, bytes)
         } catch (e: Exception) {
-            Files.deleteIfExists(configFilePath)
             println("ERROR: Can't save provided setup information!")
+            Files.deleteIfExists(configFilePath)
             return false
         }
         return true
