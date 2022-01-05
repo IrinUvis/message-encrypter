@@ -23,10 +23,10 @@
 hs_err_pid*
 
 # gradle files
-#.gradle
+.gradle
 
 # intellij files
-#.idea
+.idea
 
 # build files
-#build
+build
