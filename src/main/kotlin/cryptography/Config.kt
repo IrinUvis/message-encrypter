@@ -38,7 +38,7 @@ class Config {
             if (input) Paths.get(getImageDirPath(true))
             else Paths.get(getImageDirPath(false))
         if (path.exists() && path.isDirectory()) {
-            Printer.info("Files with .png extension in $path")
+            Printer.info("Files with .png extension in $path:")
             path.toFile()
                 .walk()
                 .filter { it.isFile }
@@ -107,9 +107,9 @@ class Config {
             inputImagesFolderName = "input"
             outputImagesFolderName = "output"
         } else {
-            Printer.standard("Input images folder name:")
+            Printer.standard("Input images directory name [inside $imagesFolderPath]:")
             inputImagesFolderName = Util.readInput()
-            Printer.standard("Output images folder name:")
+            Printer.standard("Output images folder name [inside $imagesFolderPath]:")
             outputImagesFolderName = Util.readInput()
         }
         try {
