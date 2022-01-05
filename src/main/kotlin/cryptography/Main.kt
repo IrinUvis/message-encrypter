@@ -24,10 +24,10 @@ fun main() {
                 else -> Printer.error("Wrong task: $cmd")
             }
         } else {
-            Printer.standard("Specify action (setup, setup recommended, exit):")
+            Printer.standard("Specify action (setup, setup [--rec], exit):")
             when (val cmd = Util.readInput()) {
                 "setup" -> mainHelper.performSetup(false)
-                "setup recommended" -> mainHelper.performSetup(true)
+                "setup --rec" -> mainHelper.performSetup(true)
                 "exit" -> break
                 else -> Printer.error("Wrong task: $cmd")
             }
