@@ -4,6 +4,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
+import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 
 
@@ -15,16 +16,42 @@ class Config {
         private const val SEPARATOR = ";"
     }
 
+    var configurationIsFine = false
     var imagesAbsolutePath: String = ""
     var inputImagesFolderName: String = ""
     var outputImagesFolderName: String = ""
 
-    fun printConfigInfo() {
-        println("Current input images path is: $imagesAbsolutePath\\$inputImagesFolderName")
-        println("Current output images path is: $imagesAbsolutePath\\$outputImagesFolderName")
+    fun getImageDirPath(isInput: Boolean): String {
+        return if (isInput)
+            "$imagesAbsolutePath\\$inputImagesFolderName"
+        else
+            "$imagesAbsolutePath\\$outputImagesFolderName"
     }
 
-    fun readConfig(): Boolean {
+    fun printConfigInfo() {
+        Printer.info("Current input images path is: ${getImageDirPath(true)}")
+        Printer.info("Current output images path is: ${getImageDirPath(false)}")
+    }
+
+    fun printImagesList(input: Boolean) {
+        val path =
+            if (input) Paths.get(getImageDirPath(true))
+            else Paths.get(getImageDirPath(false))
+        if (path.exists() && path.isDirectory()) {
+            Printer.info("Files with .png extension in $path")
+            path.toFile()
+                .walk()
+                .filter { it.isFile }
+                .filter { it.extension == "png" }
+                .map { it.name }
+                .forEach { Printer.standard("- $it") }
+        } else {
+            Printer.error("The setup needs to be redone!")
+            configurationIsFine = false
+        }
+    }
+
+    fun loadConfig() {
         val jarParentPath = File(this::class.java.protectionDomain.codeSource.location.toURI()).toPath().parent
         val configFilePath = jarParentPath.resolve("config.txt")
         if (Files.exists(configFilePath)) {
@@ -46,27 +73,33 @@ class Config {
                 )
                 val inputImagesDirPath = Paths.get("$imagesDirectoryPath\\$inputDirectoryName")
                 val outputImagesDirPath = Paths.get("$imagesDirectoryPath\\$outputDirectoryName")
-                return if (inputImagesDirPath.isAbsolute and inputImagesDirPath.isDirectory()
-                    and outputImagesDirPath.isAbsolute and outputImagesDirPath.isDirectory()) {
+                if (inputImagesDirPath.isAbsolute and inputImagesDirPath.isDirectory()
+                    and outputImagesDirPath.isAbsolute and outputImagesDirPath.isDirectory()
+                ) {
                     imagesAbsolutePath = imagesDirectoryPath
                     inputImagesFolderName = inputDirectoryName
                     outputImagesFolderName = outputDirectoryName
-                    true
+                    configurationIsFine = true
+
                 } else {
-                    false
+                    configurationIsFine = false
                 }
+                return
             } catch (e: Exception) {
-                println("ERROR: Config file is corrupted!")
+                Printer.error("Config file is corrupted!")
+                configurationIsFine = false
+                return
             }
         }
-        println("Setup needs to be performed!")
-        return false
+        Printer.info("Setup needs to be performed!")
+        configurationIsFine = false
+
     }
 
     fun setup(recommendedSettings: Boolean): Boolean {
         val jarParentPath = File(this::class.java.protectionDomain.codeSource.location.toURI()).toPath().parent
         val configFilePath = jarParentPath.resolve("config.txt")
-        println("Images folder: ")
+        Printer.standard("Images folder: ")
         val imagesFolderPath = Util.readInput()
         val inputImagesFolderName: String
         val outputImagesFolderName: String
@@ -74,9 +107,9 @@ class Config {
             inputImagesFolderName = "input"
             outputImagesFolderName = "output"
         } else {
-            println("Input images folder name:")
+            Printer.standard("Input images folder name:")
             inputImagesFolderName = Util.readInput()
-            println("Output images folder name:")
+            Printer.standard("Output images folder name:")
             outputImagesFolderName = Util.readInput()
         }
         try {
@@ -89,7 +122,7 @@ class Config {
                 }
             } catch (e: IOException) {
                 Files.deleteIfExists(rootPath)
-                println("ERROR: Can't create specified images root directory!")
+                Printer.error("Can't create specified images root directory!")
                 return false
             }
             try {
@@ -98,7 +131,7 @@ class Config {
                 }
             } catch (e: IOException) {
                 Files.deleteIfExists(inputImagesPath)
-                println("ERROR: Can't create specified input directory!")
+                Printer.error("Can't create specified input directory!")
                 return false
             }
             try {
@@ -107,11 +140,11 @@ class Config {
                 }
             } catch (e: IOException) {
                 Files.deleteIfExists(outputImagesPath)
-                println("ERROR: Can't create specified output directory!")
+                Printer.error("Can't create specified output directory!")
                 return false
             }
         } catch (e: Exception) {
-            println("ERROR: Incorrect input has been specified!")
+            Printer.error("Incorrect input has been specified!")
             return false
         }
         val contents = """
@@ -125,7 +158,7 @@ class Config {
             Files.createFile(configFilePath)
             Files.write(configFilePath, bytes)
         } catch (e: Exception) {
-            println("ERROR: Can't save provided setup information!")
+            Printer.error("Can't save provided setup information!")
             Files.deleteIfExists(configFilePath)
             return false
         }

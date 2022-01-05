@@ -5,35 +5,35 @@ val config = Config()
 val mainHelper = MainHelper()
 
 fun main() {
-    mainHelper.configurationIsFine = config.readConfig()
-    if (mainHelper.configurationIsFine) {
+    config.loadConfig()
+    if (config.configurationIsFine) {
         config.printConfigInfo()
     }
     while(true) {
-        if (mainHelper.configurationIsFine) {
-            println("Specify action (hide, show, setup, setup recommended, config info, help, exit):")
+        if (config.configurationIsFine) {
+            Printer.standard("Specify action (hide, show, setup [--rec], config info [--in | --out], exit):")
             when (val cmd = Util.readInput()) {
                 "hide" -> mainHelper.encodeMessageInImage()
                 "show" -> mainHelper.decodeMessageFromImage()
                 "setup" -> mainHelper.performSetup(false)
-                "setup recommended" -> mainHelper.performSetup(true)
+                "setup --rec" -> mainHelper.performSetup(true)
                 "config info" -> mainHelper.printConfigInfo()
-                "help" -> mainHelper.displayHelp()
+                "config info --in" -> mainHelper.printImagesList(true)
+                "config info --out" -> mainHelper.printImagesList(false)
                 "exit" -> break
-                else -> println("Wrong task: $cmd")
+                else -> Printer.error("Wrong task: $cmd")
             }
         } else {
-            println("Specify action (setup, setup recommended, help, exit):")
+            Printer.standard("Specify action (setup, setup recommended, exit):")
             when (val cmd = Util.readInput()) {
                 "setup" -> mainHelper.performSetup(false)
                 "setup recommended" -> mainHelper.performSetup(true)
-                "help" -> mainHelper.displayHelp()
                 "exit" -> break
-                else -> println("Wrong task: $cmd")
+                else -> Printer.error("Wrong task: $cmd")
             }
         }
     }
-    println("Bye!")
+    Printer.standard("Bye!")
 }
 
 

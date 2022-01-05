@@ -1,5 +1,8 @@
 package cryptography
 
+import java.io.File
+
+
 class Util {
     companion object {
         fun readInput(): String {
@@ -7,12 +10,20 @@ class Util {
             return readLine()!!.trim()
         }
 
-        fun readFilenameWithExtension(): String {
+        fun readFilenameWithExtension(isInput: Boolean): String {
             val input = readInput()
-            if (input.endsWith(".png")) {
-                return input
+            return if (isInput) {
+                when {
+                    input.endsWith(".png") -> input
+                    File("${config.getImageDirPath(isInput)}\\$input.png").exists() -> "$input.png"
+                    else -> throw IncorrectFileExtensionException("The image has to have .png extension!")
+                }
+            } else {
+                when {
+                    input.endsWith(".png") -> input
+                    else -> "$input.png"
+                }
             }
-            throw IncorrectExtensionException("ERROR: The image has to have .png extension!")
         }
     }
 }
